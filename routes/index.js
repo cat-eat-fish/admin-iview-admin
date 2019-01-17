@@ -185,7 +185,7 @@ router.post('/api/database/delnullfile',function(req,res){
 })
 router.post('/api/database/notice_news',function(req,res){
   pool.query('select thumb from notice_news', function(err, rows, fields) {
-    if (err){throw err;} 
+    if (err){console.log(err);} 
     var a = [];
     var b = [];
     rows.map((item,index)=>{
@@ -206,7 +206,7 @@ router.post('/api/database/notice_news',function(req,res){
 })
 router.post('/api/database/delnotice_news',function(req,res){
   pool.query('select thumb from notice_news', function(err, rows, fields) {
-    if (err){throw err;} 
+    if (err){console.log(err);}
     var a = [];
     var b = [];
     rows.map((item,index)=>{
@@ -231,6 +231,105 @@ router.post('/api/database/delnotice_news',function(req,res){
     res.json({status:200,message:"删除成功",data:{chaji:difference}})
   });
 })
+
+router.post('/api/database/admin',function(req,res){
+  pool.query('select thumb from admin', function(err, rows, fields) {
+    if (err){console.log(err);}
+    var a = [];
+    var b = [];
+    rows.map((item,index)=>{
+      a.push(item.thumb);
+    })
+    var imgurl = getFiles.getFileList("./upload/admin/");
+    imgurl.map((item,index)=>{
+      b.push(item.path+item.filename);
+    });
+    // 并集
+    var union = a.concat(b.filter(function(v) {return a.indexOf(v) === -1})) 
+    // 交集
+    var intersection = a.filter(function(v){ return b.indexOf(v) > -1 }) 
+    // 差集
+    var difference = a.filter(function(v){ return b.indexOf(v) === -1 })
+    res.json({status:200,data:{allimg:union,nowuseimg:intersection}})
+  });
+})
+router.post('/api/database/deladmin',function(req,res){
+  pool.query('select thumb from admin', function(err, rows, fields) {
+    if (err){console.log(err);}
+    var a = [];
+    var b = [];
+    rows.map((item,index)=>{
+      b.push(item.thumb);
+    })
+    var imgurl = getFiles.getFileList("./upload/admin/");
+    imgurl.map((item,index)=>{
+      a.push(item.path+item.filename);
+    });
+    //并集
+    var union = a.concat(b.filter(function(v) {return a.indexOf(v) === -1})) 
+    // 交集
+    var intersection = a.filter(function(v){ return b.indexOf(v) > -1 }) 
+    // 差集
+    var difference = a.filter(function(v){ return b.indexOf(v) === -1 })
+    
+    difference.map((item,index)=>{
+      fs.unlink(item, function(err){{
+        if (err) {return console.error(err);}
+      }})
+    })
+    res.json({status:200,message:"删除成功",data:{chaji:difference}})
+  });
+})
+
+router.post('/api/database/advertisement',function(req,res){
+  pool.query('select img from advertisement', function(err, rows, fields) {
+    if (err){console.log(err);}
+    var a = [];
+    var b = [];
+    rows.map((item,index)=>{
+      a.push(item.img);
+    })
+    var imgurl = getFiles.getFileList("./upload/advertisement/");
+    imgurl.map((item,index)=>{
+      b.push(item.path+item.filename);
+    });
+    // 并集
+    var union = a.concat(b.filter(function(v) {return a.indexOf(v) === -1})) 
+    // 交集
+    var intersection = a.filter(function(v){ return b.indexOf(v) > -1 }) 
+    // 差集
+    var difference = a.filter(function(v){ return b.indexOf(v) === -1 })
+    res.json({status:200,data:{allimg:union,nowuseimg:intersection}})
+  });
+})
+router.post('/api/database/deladvertisement',function(req,res){
+  pool.query('select img from advertisement', function(err, rows, fields) {
+    if (err){console.log(err);}
+    var a = [];
+    var b = [];
+    rows.map((item,index)=>{
+      b.push(item.img);
+    })
+    var imgurl = getFiles.getFileList("./upload/advertisement/");
+    imgurl.map((item,index)=>{
+      a.push(item.path+item.filename);
+    });
+    //并集
+    var union = a.concat(b.filter(function(v) {return a.indexOf(v) === -1})) 
+    // 交集
+    var intersection = a.filter(function(v){ return b.indexOf(v) > -1 }) 
+    // 差集
+    var difference = a.filter(function(v){ return b.indexOf(v) === -1 })
+    
+    difference.map((item,index)=>{
+      fs.unlink(item, function(err){{
+        if (err) {return console.error(err);}
+      }})
+    })
+    res.json({status:200,message:"删除成功",data:{chaji:difference}})
+  });
+})
+
 
 
 /* ==================================================================  管理员管理  =============================================== */
@@ -343,7 +442,7 @@ router.post('/api/notice_news',function(req,res,next){
     if (err){throw err;} 
     // 数据处理
     rows.map((item,index)=>{
-      item.pid = item.id == 1 ? "公告" : item.id == 2 ? "新闻" : "未知分类";
+      item.pid = item.pid == 1 ? "公告" : item.pid == 2 ? "新闻" : "未知分类";
       item.status = item.status == 1 ? "草稿" : item.status == 2 ? "等待审核" : item.status == 3 ? "已发布" : "未知状态";
       item.ontop = item.ontop == 1 ? "置顶" : "不置顶";
       item.iselite = item.iselite == 1 ? "推荐" : "不推荐";
