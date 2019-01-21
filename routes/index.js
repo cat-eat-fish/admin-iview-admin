@@ -178,6 +178,11 @@ router.get('/api/', function(req, res, next) {
   req.session.lastPage = '/awesome'; //每一次访问时，session对象的lastPage会自动的保存或更新内存中的session中去。
   res.send("You're Awesome. And the session expired time is: " + req.session.cookie.maxAge);
 });
+/* ==================================================================  测试  =============================================== */
+// 测试页面
+router.post('/api/text', function(req, res, next) {
+  res.json({status:200,message:"测试页面！"});
+});
 /* ==================================================================  数据库管理  =============================================== */
 router.post('/api/database/delnullfile',function(req,res){
   getFileList("./upload/");
@@ -231,7 +236,6 @@ router.post('/api/database/delnotice_news',function(req,res){
     res.json({status:200,message:"删除成功",data:{chaji:difference}})
   });
 })
-
 router.post('/api/database/admin',function(req,res){
   pool.query('select thumb from admin', function(err, rows, fields) {
     if (err){console.log(err);}
@@ -280,7 +284,6 @@ router.post('/api/database/deladmin',function(req,res){
     res.json({status:200,message:"删除成功",data:{chaji:difference}})
   });
 })
-
 router.post('/api/database/advertisement',function(req,res){
   pool.query('select img from advertisement', function(err, rows, fields) {
     if (err){console.log(err);}
@@ -329,13 +332,12 @@ router.post('/api/database/deladvertisement',function(req,res){
     res.json({status:200,message:"删除成功",data:{chaji:difference}})
   });
 })
-
-
-
 /* ==================================================================  管理员管理  =============================================== */
 // 添加管理员信息
 router.post('/api/myaddAdmin', function(req, res) {
   var username = req.body.nusername,
+      gender = req.body.ngender,
+      desc = req.body.ndesc,
       password = req.body.npassword,
       name = req.body.nname,
       card = req.body.ncard,
@@ -350,8 +352,9 @@ router.post('/api/myaddAdmin', function(req, res) {
           res.json({status:400, message: '验证失败！'});
         }
           if(rows2.indexOf(username) === -1){
-            pool.query(`INSERT INTO admin (username,password,name,thumb,card,address,phone,registeraddress,ip) VALUES ("${username}","${password}","${name}","${thumb}",${card},"${address}",${phone},"${registeraddress},"${ip}")`,function(error, rows, fields){
+            pool.query(`INSERT INTO admin (username,password,name,thumb,card,address,phone,registeraddress,ip,gender,mydesc) VALUES ("${username}","${password}","${name}","${thumb}","${card}","${address}","${phone}","${registeraddress}","${ip}","${gender}","${desc}")`,function(error, rows, fields){
               if(error){console.log( error)};
+              console.log(rows)
               if(rows.affectedRows !== 1){
                 res.json({status:400,message:"注册失败！"});
               }else{
@@ -362,6 +365,25 @@ router.post('/api/myaddAdmin', function(req, res) {
             res.json({status:201, message: '用户名已存在！'});
           }
       })
+})
+// 修改信息
+router.post('/api/editadmin', function(req, res) {
+  var username = req.body.nusername,
+      id = req.body.nid, 
+      password = req.body.npassword,
+      name = req.body.nname,
+      card = req.body.ncard,
+      phone = req.body.nphone,
+      address =  req.body.ncity,
+      mydesc = req.body.ndesc ;
+      pool.query(`UPDATE admin SET name="${name}",password="${password}",username="${username}",phone="${phone}",card="${card}",mydesc="${mydesc}",address="${address}" WHERE id=${id}`,function(error, rows, fields){
+        if(error){console.log( error)};
+          if(rows.affectedRows !== 1){
+            res.json({status:400,message:"更新失败！"});
+          }else{
+            res.json({status:200,message:"更新成功！"})
+          }
+      });
 })
 //管理员上传头像
 router.post('/api/file/uploading', function(req, res) {
@@ -424,17 +446,33 @@ router.post('/api/file/uploading', function(req, res) {
 router.post('/api/admin', function(req, res, next) {
   pool.query('select  * from admin', function(err, rows, fields) {
     if (err){throw err;} 
-    // 数据处理
     rows.map((item,index)=>{
-      item.date = formateDate(item.date,"Y-M-D h:min:s")
-      item.name = item.name == -1 ? "未设置" : item.name;
-      item.card = item.card == -1 ? "未设置" : item.card;
-      item.ip = item.ip == -1 ? "未获取" : item.ip;
-      item.address = item.address == -1 ? "未设置" : item.address;
+      item.date = formateDate(new Date(item.date),"Y-M-D h:min:s")
+      item.name = item.name === "-1" ? "未设置" : item.name;
+      item.gender = item.gender === "-1" ? "未设置" : item.gender;
+      item.desc = item.desc === "-1" ? "未设置" : item.desc;
+      item.card = item.card === "-1" ? "未设置" : item.card;
+      item.ip = item.ip === "-1" ? "未获取" : item.ip;
+      item.address = item.address === "-1" ? "未设置" : item.address;
     })
     res.send(rows)
   });
 });
+// 删除admin
+router.post('/api/deladmin',function(req, res, next){
+  var id = Number(req.body.id);
+  console.log(id)
+  pool.query(`DELETE FROM admin WHERE id=${id}`,function(error, rows, fields){
+    if(error){
+      res.json({status:399, message: '删除失败！'});
+    }
+    if(rows.affectedRows === 1){
+      res.json({status:200, message: '删除成功！'});
+    }else {
+      res.json({status:400, message: '删除失败！'});
+    }
+  })
+})
 /* ==================================================================  公告_新闻管理  =============================================== */
 // 获取信息
 router.post('/api/notice_news',function(req,res,next){
@@ -563,7 +601,6 @@ router.post('/api/editnotice_news', function(req, res) {
                   iselite = Number(fields.iselite),
                   add_time = fields.add_time,
                   thumb = dstPath;
-                  console.log(sort,id,pid,author,status,title,keyword,content,ontop,iselite,add_time,thumb )
               console.log('rename ok'); 
               
               pool.query(`UPDATE notice_news SET sort = ${sort},pid = ${pid},author = '${author}',status = ${status},title = '${title}',keyword = '${keyword}',content = '${content}',ontop = ${ontop},iselite = ${iselite},add_time = '${add_time}',thumb = '${thumb}'  WHERE id = ${id}`,function(error, rows, fields){
@@ -601,6 +638,20 @@ router.post('/api/delnotice_news',function(req,res){
       res.json({status:400, message: '删除失败！'});
     }else {
       res.json({status:200, message: '删除成功！'});
+    }
+  })
+});
+//审核文章
+router.post('/api/notice_news/release', function(req, res) {
+  var id = req.body.id;
+  pool.query(`UPDATE notice_news SET status=3 WHERE id=${id}`,function(error, rows, fields){
+    if(error){
+      res.json({status:399, message: '发布失败！'});
+    }
+    if(rows.affectedRows !== 1){
+      res.json({status:400, message: '发布失败！'});
+    }else {
+      res.json({status:200, message: '发布成功！'});
     }
   })
 });
@@ -753,14 +804,116 @@ router.post('/api/editadvertisement', function(req, res) {
     }
   });
 });
-
-
-
-
-
-
-
-
+/* ==================================================================  消息中心  =============================================== */
+// 未读消息 个数
+router.get('/api/message/count',function(req,res){
+  pool.query(`SELECT *  FROM message WHERE status=1`,function(error, rows, fields){
+    if(error){
+      console.log(error)
+      res.json({status:199, message: '查询失败！'});
+    }else{
+      res.end(String(rows.length))
+    }
+  })
+})
+// 消息中心的  未读消息 已读消息  回收站 数据
+router.get('/api/message/init',function(req,res){
+  pool.query(`SELECT *  FROM message`,function(error, rows, fields){
+    if(error){
+      console.log(error)
+      res.json({status:199, message: '查询失败！'});
+    }else{
+      let unreadList = [];
+      let readedList = [];
+      let trashList = [];
+      rows.map((item,index)=>{
+        item.msg_id  = item.id;
+        item.create_time = formateDate(new Date(item.create_time),"Y-M-D h:min:s")
+        if(item.status === 1){
+          unreadList.push(item);
+        }else if(item.status === 2){
+          readedList.push(item);
+        }else if(item.status === 3){
+          trashList.push(item);
+        }
+      })
+      res.json( {unread: unreadList,readed: readedList,trash: trashList})
+    }
+  })
+})
+// 消息中心 新闻内容
+router.get('/api/message/content',function(req,res){
+  const params = getParams(req.url)
+  var id = Number(params.msg_id);
+  pool.query(`SELECT content FROM message WHERE id=${id}`,function(error, rows, fields){
+    if(error){
+      console.log(error)
+      res.json({status:199, message: '查询失败！'});
+    }else{
+      res.end(rows[0].content);
+    }
+  })
+})
+// 添加到已读
+router.post('/api/message/has_read',function(req,res){
+  var id = req.body.msg_id;
+  pool.query(`UPDATE message SET status=2 WHERE id=${id}`,function(error, rows, fields){
+    if(error){
+      console.log(error)
+      res.json({status:199, message: '查询失败！'});
+    }else{
+      res.json({status:200,message:"success"});
+    }
+  })
+})
+// 删除一个已读消息到回收站
+router.post('/api/message/remove_readed',function(req,res){
+  var id = req.body.msg_id;
+  var date = formateDate(new Date(),"Y-M-D h:min:s")
+  pool.query(`UPDATE message SET status=3,onrecycletime='${date}' WHERE id=${id}`,function(error, rows, fields){
+    if(error){
+      console.log(error)
+      res.json({status:199, message: '查询失败！'});
+    }else{
+      res.json({status:200,message:"success",data:true});
+    }
+  })
+})
+// 还原一个已删除消息到已读消息
+router.post('/api/message/restore',function(req,res){
+  var id = req.body.msg_id;
+  pool.query(`UPDATE message SET status=2 WHERE id=${id}`,function(error, rows, fields){
+    if(error){
+      console.log(error)
+      res.json({status:199, message: '查询失败！'});
+    }else{
+      res.json({status:200,message:"success",data:true});
+    }
+  })
+})
+// 回收站消息自动清理
+router.post('/api/message/delmessage',function(req,res){
+  pool.query(`SELECT * FROM message WHERE status=3`,function(error, rows, fields){
+    if(error){
+      console.log(error)
+      res.json({status:199, message: '查询失败！'});
+    }else{
+      rows.map((item,index)=>{
+        if(Number(new Date()) - Number(new Date(item.onrecycletime)) >= (1000 * 60 * 60 * 24 * 3)){
+          pool.query(`DELETE FROM message WHERE id=${item.id}`,function(error, rows, fields){
+            if(error){
+              console.log(error)
+            }else{
+              res.json({status:200, message: '清除成功！'});
+            }
+          })
+        }else{
+          res.json({status:201, message: '暂时没有超过3天的垃圾消息！'});
+        }
+      })
+    }
+  })
+})
 
 
 
